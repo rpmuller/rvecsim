@@ -48,15 +48,16 @@ let results = q.measure(0, 10, &mut rng);
 
 ## Performance
 
-GHZ state preparation (H gate + CNOT chain) on Apple M1:
+GHZ state preparation (H gate + CNOT chain) on Apple M1, comparing
+rvecsim (Rust + rayon) vs the original Python/NumPy vecsim:
 
-| Qubits | Amplitudes | Gate time |
-|--------|-----------|-----------|
-| 10     | 1,024     | 0.3 ms    |
-| 15     | 32,768    | 0.8 ms    |
-| 18     | 262,144   | 4 ms      |
-| 20     | 1,048,576 | 18 ms     |
-| 22     | 4,194,304 | 63 ms     |
+| Qubits | Amplitudes | Python   | Rust    | Speedup  |
+|--------|-----------|----------|---------|----------|
+| 10     | 1,024     | 2.9 ms   | 0.34 ms | **9x**   |
+| 15     | 32,768    | 133 ms   | 0.96 ms | **139x** |
+| 18     | 262,144   | 1.02 s   | 4.4 ms  | **231x** |
+| 20     | 1,048,576 | 5.20 s   | 16.5 ms | **315x** |
+| 22     | 4,194,304 | 20.9 s   | 66.6 ms | **314x** |
 
 ## Tests
 
