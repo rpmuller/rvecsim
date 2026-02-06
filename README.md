@@ -103,17 +103,18 @@ GHZ state preparation (H gate + CNOT chain) on Apple M1:
 
 | Qubits | Amplitudes | Python/NumPy | Rust (native) | Python→Rust | Speedup vs Python |
 |--------|-----------|--------------|---------------|-------------|-------------------|
-| 10     | 1,024     | 2.9 ms       | 0.34 ms       | 1.09 ms     | **2.7x**          |
-| 15     | 32,768    | 133 ms       | 0.96 ms       | 11.5 ms     | **12x**           |
-| 18     | 262,144   | 1.02 s       | 4.4 ms        | 82.9 ms     | **12x**           |
-| 20     | 1,048,576 | 5.20 s       | 16.5 ms       | 325 ms      | **16x**           |
-| 22     | 4,194,304 | 20.9 s       | 66.6 ms       | 1.36 s      | **15x**           |
+| 10     | 1,024     | 2.9 ms       | 0.34 ms       | 0.30 ms     | **9.7x**          |
+| 15     | 32,768    | 133 ms       | 0.96 ms       | 1.39 ms     | **96x**           |
+| 18     | 262,144   | 1.02 s       | 4.4 ms        | 10.6 ms     | **96x**           |
+| 20     | 1,048,576 | 5.20 s       | 16.5 ms       | 36.6 ms     | **142x**          |
+| 22     | 4,194,304 | 20.9 s       | 66.6 ms       | 174 ms      | **120x**          |
 
 **Notes:**
 - **Python/NumPy**: Original vecsim.py (single-threaded)
-- **Rust (native)**: Pure Rust with rayon parallelism
-- **Python→Rust**: Python code calling Rust via PyO3 bindings (includes FFI overhead)
-- PyO3 bindings are ~3-20x slower than native Rust but still **2.7-16x faster** than pure Python
+- **Rust (native)**: Pure Rust with rayon parallelism (all cores)
+- **Python→Rust**: Python code calling Rust via PyO3 bindings with GIL released during computation
+- PyO3 bindings are only **2-3x slower** than native Rust and **10-142x faster** than pure Python!
+- GIL is released during gate operations, allowing Rayon to use ~4 cores (46% efficiency on 8-core M1)
 
 Run the Python→Rust benchmark yourself:
 ```bash

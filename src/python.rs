@@ -61,7 +61,8 @@ impl PyQReg {
 
     /// Apply Pauli-X (NOT) gate to target qubit
     fn X(slf: Py<Self>, target: usize, py: Python<'_>) -> PyResult<Py<Self>> {
-        {
+        // Validate and clone data while holding GIL
+        let mut inner = {
             let this = slf.borrow(py);
             if target >= this.inner.n {
                 return Err(PyValueError::new_err(format!(
@@ -69,16 +70,26 @@ impl PyQReg {
                     target, this.inner.n
                 )));
             }
+            this.inner.clone()
+        };
+
+        // Release GIL during computation
+        py.allow_threads(|| {
+            inner.apply1q(&crate::X_GATE, target);
+        });
+
+        // Update the Python object
+        {
+            let mut this = slf.borrow_mut(py);
+            this.inner = inner;
         }
-        let mut this = slf.borrow_mut(py);
-        this.inner.apply1q(&crate::X_GATE, target);
-        drop(this);
+
         Ok(slf)
     }
 
     /// Apply Pauli-Y gate to target qubit
     fn Y(slf: Py<Self>, target: usize, py: Python<'_>) -> PyResult<Py<Self>> {
-        {
+        let mut inner = {
             let this = slf.borrow(py);
             if target >= this.inner.n {
                 return Err(PyValueError::new_err(format!(
@@ -86,16 +97,24 @@ impl PyQReg {
                     target, this.inner.n
                 )));
             }
+            this.inner.clone()
+        };
+
+        py.allow_threads(|| {
+            inner.apply1q(&crate::Y_GATE, target);
+        });
+
+        {
+            let mut this = slf.borrow_mut(py);
+            this.inner = inner;
         }
-        let mut this = slf.borrow_mut(py);
-        this.inner.apply1q(&crate::Y_GATE, target);
-        drop(this);
+
         Ok(slf)
     }
 
     /// Apply Pauli-Z gate to target qubit
     fn Z(slf: Py<Self>, target: usize, py: Python<'_>) -> PyResult<Py<Self>> {
-        {
+        let mut inner = {
             let this = slf.borrow(py);
             if target >= this.inner.n {
                 return Err(PyValueError::new_err(format!(
@@ -103,16 +122,24 @@ impl PyQReg {
                     target, this.inner.n
                 )));
             }
+            this.inner.clone()
+        };
+
+        py.allow_threads(|| {
+            inner.apply1q(&crate::Z_GATE, target);
+        });
+
+        {
+            let mut this = slf.borrow_mut(py);
+            this.inner = inner;
         }
-        let mut this = slf.borrow_mut(py);
-        this.inner.apply1q(&crate::Z_GATE, target);
-        drop(this);
+
         Ok(slf)
     }
 
     /// Apply Hadamard gate to target qubit
     fn H(slf: Py<Self>, target: usize, py: Python<'_>) -> PyResult<Py<Self>> {
-        {
+        let mut inner = {
             let this = slf.borrow(py);
             if target >= this.inner.n {
                 return Err(PyValueError::new_err(format!(
@@ -120,16 +147,24 @@ impl PyQReg {
                     target, this.inner.n
                 )));
             }
+            this.inner.clone()
+        };
+
+        py.allow_threads(|| {
+            inner.apply1q(&crate::H_GATE, target);
+        });
+
+        {
+            let mut this = slf.borrow_mut(py);
+            this.inner = inner;
         }
-        let mut this = slf.borrow_mut(py);
-        this.inner.apply1q(&crate::H_GATE, target);
-        drop(this);
+
         Ok(slf)
     }
 
     /// Apply S (phase) gate to target qubit
     fn S(slf: Py<Self>, target: usize, py: Python<'_>) -> PyResult<Py<Self>> {
-        {
+        let mut inner = {
             let this = slf.borrow(py);
             if target >= this.inner.n {
                 return Err(PyValueError::new_err(format!(
@@ -137,10 +172,18 @@ impl PyQReg {
                     target, this.inner.n
                 )));
             }
+            this.inner.clone()
+        };
+
+        py.allow_threads(|| {
+            inner.apply1q(&crate::S_GATE, target);
+        });
+
+        {
+            let mut this = slf.borrow_mut(py);
+            this.inner = inner;
         }
-        let mut this = slf.borrow_mut(py);
-        this.inner.apply1q(&crate::S_GATE, target);
-        drop(this);
+
         Ok(slf)
     }
 
@@ -148,7 +191,7 @@ impl PyQReg {
 
     /// Apply controlled-NOT gate
     fn CNOT(slf: Py<Self>, control: usize, target: usize, py: Python<'_>) -> PyResult<Py<Self>> {
-        {
+        let mut inner = {
             let this = slf.borrow(py);
             if control >= this.inner.n {
                 return Err(PyValueError::new_err(format!(
@@ -167,16 +210,24 @@ impl PyQReg {
                     "Control and target must be different qubits",
                 ));
             }
+            this.inner.clone()
+        };
+
+        py.allow_threads(|| {
+            inner.apply2q(&crate::CNOT_GATE, control, target);
+        });
+
+        {
+            let mut this = slf.borrow_mut(py);
+            this.inner = inner;
         }
-        let mut this = slf.borrow_mut(py);
-        this.inner.apply2q(&crate::CNOT_GATE, control, target);
-        drop(this);
+
         Ok(slf)
     }
 
     /// Apply controlled-phase gate
     fn CPHASE(slf: Py<Self>, control: usize, target: usize, py: Python<'_>) -> PyResult<Py<Self>> {
-        {
+        let mut inner = {
             let this = slf.borrow(py);
             if control >= this.inner.n {
                 return Err(PyValueError::new_err(format!(
@@ -195,10 +246,18 @@ impl PyQReg {
                     "Control and target must be different qubits",
                 ));
             }
+            this.inner.clone()
+        };
+
+        py.allow_threads(|| {
+            inner.apply2q(&crate::CPHASE_GATE, control, target);
+        });
+
+        {
+            let mut this = slf.borrow_mut(py);
+            this.inner = inner;
         }
-        let mut this = slf.borrow_mut(py);
-        this.inner.apply2q(&crate::CPHASE_GATE, control, target);
-        drop(this);
+
         Ok(slf)
     }
 
