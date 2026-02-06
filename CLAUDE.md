@@ -8,18 +8,37 @@ rvecsim is a Rust port of the Python `vecsim` quantum vector state simulator (lo
 
 ## Build and Test Commands
 
+### Rust
+
 ```bash
 cargo build              # Build the project
-cargo test               # Run all 17 tests
+cargo test               # Run all 30 tests
 cargo run                # Run the demo binary
 cargo build --release    # Optimized build
 ```
 
 Rust 1.93+ required (edition 2024). Installed via rustup; you may need `source "$HOME/.cargo/env"` if cargo is not on PATH.
 
+### Python Bindings
+
+```bash
+# Setup (using uv for package management)
+uv venv
+source .venv/bin/activate
+uv pip install maturin
+
+# Build and install Python extension
+maturin develop --features pyo3
+
+# Test Python bindings
+python test_python_bindings.py
+```
+
 ## Architecture
 
-All library code is in `src/lib.rs`. The binary entry point is `src/main.rs`.
+- **`src/lib.rs`**: Core library code (Rust QReg implementation)
+- **`src/main.rs`**: Binary entry point (demo)
+- **`src/python.rs`**: PyO3 Python bindings (conditionally compiled with `pyo3` feature)
 
 ### Core Types
 
@@ -27,7 +46,14 @@ All library code is in `src/lib.rs`. The binary entry point is `src/main.rs`.
   - Gate methods (`.x()`, `.y()`, `.z()`, `.h()`, `.s()`, `.cnot()`, `.cphase()`) consume self and return Self for chaining: `ket("00").h(0).cnot(0, 1)`
   - `apply1q()`/`apply2q()` take `&mut self` for in-place mutation
   - `measure()` takes `&mut impl Rng` for testability with seeded RNGs
-  - Implements `Add` (superposition), `Sub`, `Mul` (tensor product), `Display`
+  - Implements `Add` (superposition), `Sub`, `Mul` (tensor product), `Display`, `Clone`
+
+- **`PyQReg`** (`src/python.rs`): Python wrapper around `QReg` for PyO3 bindings
+  - Gate methods (`.X()`, `.Y()`, `.Z()`, `.H()`, `.S()`, `.CNOT()`, `.CPHASE()`) use uppercase names to match Python API
+  - Methods use `Py<Self>` pattern for true method chaining (mutate in-place, return same object)
+  - `.M()` for measurement (uses `thread_rng()` internally)
+  - Implements `__add__`, `__sub__`, `__mul__` for operator overloading
+  - `.isclose()` accepts `QReg`, `list[float]`, or `list[complex]`
 
 ### Gate Matrices
 
@@ -48,10 +74,15 @@ Defined as `LazyLock<Array2<Complex64>>` statics: `X_GATE`, `Y_GATE`, `Z_GATE`, 
 
 ## Dependencies
 
+### Rust
 - **ndarray** 0.16: Array types (`Array1`, `Array2`)
 - **num-complex** 0.4: `Complex64` type
 - **rand** 0.8: RNG for measurement (note: `rng.r#gen()` needed since `gen` is reserved in edition 2024)
 - **rayon** 1: Parallel iterators for gate application
+
+### Python Bindings (optional, feature flag `pyo3`)
+- **pyo3** 0.24: Rust bindings for Python, with `num-complex` feature for automatic `Complex64` conversion
+- **maturin** 1.11+: Build tool for creating Python extension modules
 
 ## Key Implementation Details
 
@@ -63,7 +94,19 @@ Defined as `LazyLock<Array2<Complex64>>` statics: `X_GATE`, `Y_GATE`, `Z_GATE`, 
 
 ## Relationship to Python vecsim
 
-This is a direct port of `../vecsim/vecsim.py`. The Python version uses NumPy arrays and doctests. The Rust version mirrors the same API and behavior, with these adaptations:
+This is a direct port of `../vecsim/vecsim.py`. The Python version uses NumPy arrays and doctests.
+
+### Rust API differences from Python:
 - Gate methods consume self by value (for chaining) rather than returning `&mut self`
 - `measure()` takes an explicit RNG parameter instead of using a global RNG
 - Parallel gate application via rayon (Python version is single-threaded)
+
+### PyO3 Python bindings:
+The `src/python.rs` module provides Python bindings that closely match the original `vecsim.py` API:
+- **Uppercase gate methods**: `.X()`, `.Y()`, `.Z()`, `.H()`, `.S()`, `.CNOT()`, `.CPHASE()` (matching Python convention)
+- **Method chaining**: Uses `Py<Self>` pattern to mutate in-place and return the same Python object
+- **Measurement**: `.M(i, ntimes=1)` with default argument, uses `thread_rng()` internally
+- **Operators**: `+`, `-`, `*` work via `__add__`, `__sub__`, `__mul__` (clones operands)
+- **Comparison**: `.isclose()` accepts `QReg`, `list[float]`, or `list[complex]`
+- **Properties**: `.n`, `.norm`, `.amplitudes`
+- **No NumPy dependency**: All conversions use Python native types (`list`, `complex`)

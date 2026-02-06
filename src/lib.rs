@@ -151,6 +151,7 @@ fn qterm(i: usize, qi: Complex64, n: usize) -> String {
 
 // ---- Quantum Register ----
 
+#[derive(Clone)]
 pub struct QReg {
     pub v: Array1<Complex64>,
     pub n: usize,
@@ -471,6 +472,11 @@ pub fn ket(vecstring: &str) -> QReg {
     }
     QReg::from_array(register)
 }
+
+// ---- Python Bindings ----
+
+#[cfg(feature = "pyo3")]
+mod python;
 
 // ---- Tests ----
 

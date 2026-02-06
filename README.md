@@ -26,6 +26,8 @@ Bell state  = 0.707106781186548|00> 0.707106781186548|11>
 
 ## Usage
 
+### Rust
+
 ```rust
 use rvecsim::ket;
 
@@ -46,18 +48,78 @@ let mut q = ket("+");
 let results = q.measure(0, 10, &mut rng);
 ```
 
+### Python (via PyO3 bindings)
+
+Install with [maturin](https://www.maturin.rs/):
+
+```bash
+# Create virtual environment (using uv or venv)
+uv venv
+source .venv/bin/activate
+
+# Install the package
+uv pip install maturin
+maturin develop --features pyo3
+```
+
+Python API matches the original [vecsim.py](https://github.com/rpmuller/vecsim):
+
+```python
+from rvecsim import ket
+
+# Create quantum states
+q = ket('0')           # |0>
+bell = ket('00').H(0).CNOT(0, 1)  # Bell state
+
+# Operators
+two_qubits = ket('0') * ket('1')  # Tensor product |01>
+plus = ket('0') + ket('1')        # Superposition |+>
+minus = ket('0') - ket('1')       # |->
+
+# Gates (uppercase, method chaining)
+ghz = ket('000').H(0).CNOT(0, 1).CNOT(1, 2)
+
+# Measurement (returns list of 0/1 values)
+q = ket('+')
+results = q.M(0, ntimes=10)  # Measure qubit 0 ten times
+
+# Comparison with lists
+assert ket('++').isclose([0.5, 0.5, 0.5, 0.5])
+
+# Properties
+print(f"Qubits: {q.n}, Norm: {q.norm}")
+print(f"Amplitudes: {q.amplitudes}")
+```
+
+Run the test script:
+
+```bash
+python test_python_bindings.py
+```
+
 ## Performance
 
-GHZ state preparation (H gate + CNOT chain) on Apple M1, comparing
-rvecsim (Rust + rayon) vs the original Python/NumPy vecsim:
+GHZ state preparation (H gate + CNOT chain) on Apple M1:
 
-| Qubits | Amplitudes | Python   | Rust    | Speedup  |
-|--------|-----------|----------|---------|----------|
-| 10     | 1,024     | 2.9 ms   | 0.34 ms | **9x**   |
-| 15     | 32,768    | 133 ms   | 0.96 ms | **139x** |
-| 18     | 262,144   | 1.02 s   | 4.4 ms  | **231x** |
-| 20     | 1,048,576 | 5.20 s   | 16.5 ms | **315x** |
-| 22     | 4,194,304 | 20.9 s   | 66.6 ms | **314x** |
+| Qubits | Amplitudes | Python/NumPy | Rust (native) | Python→Rust | Speedup vs Python |
+|--------|-----------|--------------|---------------|-------------|-------------------|
+| 10     | 1,024     | 2.9 ms       | 0.34 ms       | 1.09 ms     | **2.7x**          |
+| 15     | 32,768    | 133 ms       | 0.96 ms       | 11.5 ms     | **12x**           |
+| 18     | 262,144   | 1.02 s       | 4.4 ms        | 82.9 ms     | **12x**           |
+| 20     | 1,048,576 | 5.20 s       | 16.5 ms       | 325 ms      | **16x**           |
+| 22     | 4,194,304 | 20.9 s       | 66.6 ms       | 1.36 s      | **15x**           |
+
+**Notes:**
+- **Python/NumPy**: Original vecsim.py (single-threaded)
+- **Rust (native)**: Pure Rust with rayon parallelism
+- **Python→Rust**: Python code calling Rust via PyO3 bindings (includes FFI overhead)
+- PyO3 bindings are ~3-20x slower than native Rust but still **2.7-16x faster** than pure Python
+
+Run the Python→Rust benchmark yourself:
+```bash
+source .venv/bin/activate
+python benchmark_python.py
+```
 
 ## Tests
 
@@ -69,7 +131,12 @@ cargo test
 
 ## Dependencies
 
+### Rust
 - [ndarray](https://crates.io/crates/ndarray) - N-dimensional arrays
 - [num-complex](https://crates.io/crates/num-complex) - Complex number types
 - [rand](https://crates.io/crates/rand) - Random number generation for measurement
 - [rayon](https://crates.io/crates/rayon) - Parallel iterators for gate application
+
+### Python bindings (optional)
+- [PyO3](https://pyo3.rs/) - Rust bindings for Python (feature flag: `pyo3`)
+- [maturin](https://www.maturin.rs/) - Build tool for Python extension modules

@@ -1,1 +1,12 @@
 /target
+
+# Python bindings
+*.so
+*.pyd
+*.dylib
+__pycache__/
+*.egg-info/
+dist/
+*.pyc
+.venv/
+venv/
